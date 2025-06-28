@@ -1,4 +1,5 @@
-import 'package:carbon_tracker/settings_screen.dart';
+
+import 'package:carbon_tracker/settings_screen/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
