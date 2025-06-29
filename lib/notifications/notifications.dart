@@ -18,13 +18,11 @@ class _NotificationsState extends State<Notifications> {
       body: ListTile(
         title: const Text(
           'Enable Notifications',
-          style: TextStyle(
-            fontSize: 20, // bigger text
-          ),
+          style: TextStyle(fontSize: 20),
         ),
         trailing: CupertinoSwitch(
           value: _notificationEnabled,
-          activeTrackColor: Colors.deepPurple, // customize color if you want
+          activeTrackColor: Colors.deepPurple,
           onChanged: (bool value) {
             setState(() {
               _notificationEnabled = value;
