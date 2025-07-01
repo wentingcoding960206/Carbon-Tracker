@@ -1,4 +1,5 @@
 
+import 'package:carbon_tracker/rank_screen/rank_screen.dart';
 import 'package:carbon_tracker/settings_screen/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -22,7 +23,7 @@ class MyApp extends StatelessWidget {
         )
       ),
       debugShowCheckedModeBanner: false,
-      home: SettingsScreen()
+      home: RankScreen()
     );
   }
 }
