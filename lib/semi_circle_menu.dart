@@ -7,18 +7,18 @@ class SemiCircleMenu extends StatefulWidget {
   final void Function(int) onItemTap;
 
   const SemiCircleMenu({
-    Key? key,
+    super.key,
     required this.icons,
     required this.radius,
     required this.onItemTap,
-  }) : super(key: key);
+  });
 
   @override
   _SemiCircleMenuState createState() => _SemiCircleMenuState();
 }
 
 class _SemiCircleMenuState extends State<SemiCircleMenu> {
-  double rotationAngle = 0; // 用來追蹤當前的旋轉角度
+  double rotationAngle = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -28,8 +28,7 @@ class _SemiCircleMenuState extends State<SemiCircleMenu> {
     return GestureDetector(
       onPanUpdate: (details) {
         setState(() {
-          // 根據拖動的水平方向更新旋轉角度
-          rotationAngle += details.localPosition.dx * 0.01; // 調整旋轉的敏感度
+          rotationAngle += details.localPosition.dx * 0.01;
         });
       },
       child: SizedBox(
