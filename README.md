@@ -1,16 +1,13 @@
-# carbon_tracer
-
-A new Flutter project.
-
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+To be able to run the map, create a Google Cloud acc ( theres a free trail till Sep).
 
-A few resources to get you started if this is your first Flutter project:
+Link: https://console.cloud.google.com
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Then create a new project and create a personal API key. You can copy the link and store it in android/local.properties file (or wherever your local.properties is). 
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Add this line :
+
+MAPS_API_KEY = {your own api key}
+
+Then it should work fineee :). 
