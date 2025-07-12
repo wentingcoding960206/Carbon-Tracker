@@ -1,5 +1,9 @@
-import 'package:carbon_tracker/settings.dart';
+//import 'package:carbon_tracker/camera.dart';
+//import 'package:carbon_tracker/google_maps.dart';
+//import 'package:carbon_tracker/settings.dart';
+import 'package:carbon_tracker/google_maps.dart';
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart';
 //import 'package:flutter/cupertino.dart';
 /*void main(){
@@ -47,7 +51,7 @@ class MyApp extends StatelessWidget{
       textDirection: TextDirection.ltr,
       );*/
     return MaterialApp(
-      home: SettingsPage(),
+      home: GoogleMapsFlutter(),
     );
     
   }
