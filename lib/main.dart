@@ -47,7 +47,7 @@ class MyApp extends StatelessWidget{
       textDirection: TextDirection.ltr,
       );*/
     return MaterialApp(
-      home: CameraPage(),
+      home: RecordButton(),
     );
     
   }

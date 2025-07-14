@@ -6,6 +6,10 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:flutter/cupertino.dart';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart' hide PermissionStatus;
+
 
 
 void main() {
@@ -16,6 +20,7 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
+  
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
@@ -47,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _recorder = Record();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initLocation();
     });
@@ -143,12 +149,130 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
 
+    late Record _recorder;          // 初始化位置：initState() 裡記得加上 _recorder = Record();
+    bool _isRecording = false;      // 是否正在錄音
+    String? _recordedPath;          // 錄音檔路徑
+
+    void _toggleRecording() async {
+      if (_isRecording) {
+        final path = await _recorder.stop();
+        print('✅ 錄音停止：$path');
+        setState(() {
+          _isRecording = false;
+          _recordedPath = path;
+        });
+      } else {
+        final status = await Permission.microphone.request();
+        if (!status.isGranted) {
+          print('❌ 沒有麥克風權限');
+          return;
+        }
+
+        final dir = await getApplicationDocumentsDirectory();
+        final filePath =
+            '${dir.path}/recording_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+        await _recorder.start(
+          path: filePath,
+          encoder: AudioEncoder.aacLc,
+          bitRate: 128000,
+          samplingRate: 44100,
+        );
+
+        print('🎙️ 開始錄音，儲存於：$filePath');
+        setState(() {
+          _isRecording = true;
+          _recordedPath = filePath;
+        });
+      }
+    }
+
+    void _showNoteSheet() {
+      TextEditingController _noteController = TextEditingController();
+
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (context) {
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+              top: 16,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[400],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'location', 
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 12),
+                TextField(
+                  controller: _noteController,
+                  maxLines: null,
+                  decoration: InputDecoration(
+                    hintText: 'Write something',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      String note = _noteController.text;
+                      // TODO: 存記事
+                      print('保存記事：$note');
+                      Navigator.pop(context);
+                    },
+                    child: Text('post'),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    }
+
     void _showMediaOptions(BuildContext context) {
       showCupertinoModalPopup(
     context: context,
     builder: (BuildContext context) => CupertinoActionSheet(
       title: Text('Choose'),
       actions: <CupertinoActionSheetAction>[
+        CupertinoActionSheetAction(
+          child: Row(
+            children: [
+              Icon(CupertinoIcons.list_bullet, size: 20),
+              SizedBox(width: 8),
+              Text('note'),
+            ],
+          ),
+          onPressed: () {
+            _showNoteSheet();
+          },
+        ),
         CupertinoActionSheetAction(
           child: Row(
             children: [
@@ -162,7 +286,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _pickMedia(false);
           },
         ),
-        CupertinoActionSheetAction(
+        /*CupertinoActionSheetAction(
           child: Row(
             children: [
               Icon(CupertinoIcons.videocam, size: 20),
@@ -174,7 +298,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Navigator.pop(context);
             _pickMedia(true); 
           },
-        ),
+        ),*/
         CupertinoActionSheetAction(
           
           child: Row(
@@ -186,7 +310,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           onPressed: () {
             Navigator.pop(context);
-            
+            _toggleRecording();
           },
         ),
       ],

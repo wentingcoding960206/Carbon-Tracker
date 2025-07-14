@@ -38,11 +38,12 @@ dependencies:
   location: ^8.0.1
   flutter_svg: any
   camera: ^0.11.2
-  permission_handler: ^12.0.1
+  permission_handler: ^11.0.1
   image_picker: ^0.8.7+4
-  path_provider: ^2.0.11
   sqflite: ^2.0.0+4
   path: ^1.8.3
+  record: ^4.4.4
+  path_provider: ^2.0.11
 
 dev_dependencies:
   flutter_test:

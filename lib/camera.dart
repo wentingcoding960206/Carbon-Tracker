@@ -1,11 +1,123 @@
+import 'package:flutter/material.dart';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 
+void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: '錄音測試',
+      home: Scaffold(
+        appBar: AppBar(title: const Text('錄音按鈕')),
+        body: const Center(child: RecordButton()),
+      ),
+    );
+  }
+}
+
+class RecordButton extends StatefulWidget {
+  const RecordButton({super.key});
+  @override
+  State<RecordButton> createState() => _RecordButtonState();
+}
+
+class _RecordButtonState extends State<RecordButton> {
+  final Record _recorder = Record();
+  bool _isRecording = false;
+  String? _filePath;
+
+  Future<void> _toggleRecording() async {
+    if (_isRecording) {
+      final path = await _recorder.stop();
+      setState(() {
+        _isRecording = false;
+        _filePath = path;
+      });
+      print('✅ 錄音完成，檔案儲存在：$path');
+    } else {
+      final status = await Permission.microphone.request();
+      if (!status.isGranted) {
+        print('❌ 沒有取得麥克風權限');
+        return;
+      }
+
+      final dir = await getApplicationDocumentsDirectory();
+      final filePath =
+          '${dir.path}/recording_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+      await _recorder.start(
+        path: filePath,
+        encoder: AudioEncoder.aacLc,
+        bitRate: 128000,
+        samplingRate: 44100,
+      );
+
+      setState(() {
+        _isRecording = true;
+        _filePath = filePath;
+      });
+      print('🎙️ 開始錄音...');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        ElevatedButton(
+          onPressed: _toggleRecording,
+          child: Text(_isRecording ? '停止錄音' : '開始錄音'),
+        ),
+        const SizedBox(height: 20),
+        if (_filePath != null) Text('錄音檔路徑：\n$_filePath'),
+      ],
+    );
+  }
+}
+
+
+
+/*import 'dart:io';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 class CameraPage extends StatefulWidget {
   @override
   _CameraPageState createState() => _CameraPageState();
+}
+
+final record = AudioRecorder();
+String? _audioPath;
+
+Future<void> _startRecording() async {
+  final status = await Permission.microphone.request();
+  if (!status.isGranted) {
+    print('未取得錄音權限');
+    return;
+  }
+
+  final dir = await getApplicationDocumentsDirectory();
+  final filepath = '${dir.path}/recording_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+  await record.start(const RecordConfig(), path: filepath);
+  print('錄音中...');
+}
+
+Future<void> _stopRecording() async {
+  final path = await record.stop();
+  print('錄音結束：$path');
+  _audioPath = path;
 }
 
 class _CameraPageState extends State<CameraPage> {
@@ -20,6 +132,8 @@ class _CameraPageState extends State<CameraPage> {
       });
     }
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -41,8 +155,7 @@ class _CameraPageState extends State<CameraPage> {
                   ),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _takePhoto,
-              child: Text('拍照'),
+              onPressed: _startRecording();
             ),
           ],
         ),
@@ -53,7 +166,7 @@ class _CameraPageState extends State<CameraPage> {
 
 
 
-/*import 'dart:io';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
