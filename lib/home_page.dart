@@ -1,7 +1,12 @@
+//import 'package:carbon_tracker/camera.dart';
 import 'package:flutter/material.dart';
 import 'semi_circle_menu.dart';
 import 'package:location/location.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:flutter/cupertino.dart';
+
 
 void main() {
   runApp(const MyApp());
@@ -121,10 +126,99 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+    final ImagePicker _picker = ImagePicker();
+    File? _mediaFile;
+    bool _isVideo = false;
+
+    Future<void> _pickMedia(bool isVideo) async {
+      final XFile? file = isVideo
+          ? await _picker.pickVideo(source: ImageSource.camera)
+          : await _picker.pickImage(source: ImageSource.camera);
+
+      if (file != null) {
+        setState(() {
+          _mediaFile = File(file.path);
+          _isVideo = isVideo;
+        });
+      }
+    }
+
+    void _showMediaOptions(BuildContext context) {
+      showCupertinoModalPopup(
+    context: context,
+    builder: (BuildContext context) => CupertinoActionSheet(
+      title: Text('Choose'),
+      actions: <CupertinoActionSheetAction>[
+        CupertinoActionSheetAction(
+          child: Row(
+            children: [
+              Icon(CupertinoIcons.camera, size: 20),
+              SizedBox(width: 8),
+              Text('Photo'),
+            ],
+          ),
+          onPressed: () {
+            Navigator.pop(context);
+            _pickMedia(false);
+          },
+        ),
+        CupertinoActionSheetAction(
+          child: Row(
+            children: [
+              Icon(CupertinoIcons.videocam, size: 20),
+              SizedBox(width: 8),
+              Text('Video'),
+            ],
+          ),
+          onPressed: () {
+            Navigator.pop(context);
+            _pickMedia(true); 
+          },
+        ),
+        CupertinoActionSheetAction(
+          
+          child: Row(
+            children: [
+              Icon(CupertinoIcons.mic, size: 20),
+              SizedBox(width: 8),
+              Text('Record'),
+            ],
+          ),
+          onPressed: () {
+            Navigator.pop(context);
+            
+          },
+        ),
+      ],
+      cancelButton: CupertinoActionSheetAction(
+        isDestructiveAction: true,
+        child: Text('Cancel'),
+        onPressed: () {
+          Navigator.pop(context);
+        },
+      ),
+    ),
+  );
+    }
+
+
+  /*final ImagePicker _picker = ImagePicker();
+    File? _imageFile;
+
+    Future<void> _takePhoto() async {
+      final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
+      if (photo != null) {
+        setState(() {
+          _imageFile = File(photo.path);
+        });
+      }
+    }*/
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
+        
         children: [
           GoogleMap(
             onMapCreated: _onMapCreated,
@@ -132,6 +226,8 @@ class _HomeScreenState extends State<HomeScreen> {
               target: _userLocation!,
               zoom: 16,
             ),
+          
+          
             myLocationEnabled: true,
             myLocationButtonEnabled: false,
           ),
@@ -170,8 +266,16 @@ class _HomeScreenState extends State<HomeScreen> {
               child: IconButton(
                 icon: Icon(Icons.camera_alt_outlined),
                 iconSize: 40,
-                onPressed: () {},
+                onPressed: () {
+                  /*Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => CameraPage()),
+                  );*/
+                  //_takePhoto();
+                  _showMediaOptions(context);
+                },
               ),
+              
             ),
           ),
           Align(
