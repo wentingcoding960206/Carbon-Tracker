@@ -1,5 +1,6 @@
 //import 'package:carbon_tracker/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as path;
 import 'semi_circle_menu.dart';
 import 'package:location/location.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -142,16 +143,45 @@ class _HomeScreenState extends State<HomeScreen> {
           : await _picker.pickImage(source: ImageSource.camera);
 
       if (file != null) {
+        // 取得 App 的文件資料夾
+        final Directory appDir = await getApplicationDocumentsDirectory();
+
+        // 原始檔名（保持副檔名）
+        final String fileName = '${DateTime.now().millisecondsSinceEpoch}${path.extension(file.path)}';
+
+        // 目標儲存路徑
+        final String newPath = path.join(appDir.path, fileName);
+
+        // 將檔案複製到 App 資料夾
+        final savedFile = await File(file.path).copy(newPath);
+
+        print('✅ 檔案儲存成功：$newPath');
+
         setState(() {
-          _mediaFile = File(file.path);
+          _mediaFile = savedFile;
           _isVideo = isVideo;
         });
       }
     }
 
-    late Record _recorder;          // 初始化位置：initState() 裡記得加上 _recorder = Record();
-    bool _isRecording = false;      // 是否正在錄音
-    String? _recordedPath;          // 錄音檔路徑
+
+
+    /*Future<void> _pickMedia(bool isVideo) async {
+      final XFile? file = isVideo
+          ? await _picker.pickVideo(source: ImageSource.camera)
+          : await _picker.pickImage(source: ImageSource.camera);
+
+      if (file != null) {
+        setState(() {
+          _mediaFile = File(file.path);
+          _isVideo = isVideo;
+        });
+      }
+    }*/
+
+    late Record _recorder;          
+    bool _isRecording = false;      
+    String? _recordedPath;          
 
     void _toggleRecording() async {
       if (_isRecording) {
