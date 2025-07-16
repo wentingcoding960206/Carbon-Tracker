@@ -9,9 +9,9 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart' hide PermissionStatus;
-
-
+import 'package:permission_handler/permission_handler.dart'
+    hide PermissionStatus;
+import 'package:audioplayers/audioplayers.dart';
 
 void main() {
   runApp(const MyApp());
@@ -21,7 +21,6 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
-  
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
@@ -42,8 +41,20 @@ class HomeScreen extends StatefulWidget {
   }
 }
 
+class PostData {
+  final LatLng location;
+  final String type;
+  final String content;
+
+  PostData({required this.location, required this.type, required this.content});
+}
+
 class _HomeScreenState extends State<HomeScreen> {
   late GoogleMapController mapController;
+
+  Set<Marker> _markers = {};
+  List<PostData> _posts = [];
+  final AudioPlayer _audioPlayer = AudioPlayer();  
 
   final LatLng _fallbackLocation = LatLng(25.033964, 121.564468); // Taipei 101
   LatLng? _userLocation = LatLng(25.033964, 121.564468);
@@ -133,246 +144,372 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-    final ImagePicker _picker = ImagePicker();
-    File? _mediaFile;
-    bool _isVideo = false;
+  final ImagePicker _picker = ImagePicker();
+  File? _mediaFile;
+  bool _isVideo = false;
 
-    Future<void> _pickMedia(bool isVideo) async {
-      final XFile? file = isVideo
-          ? await _picker.pickVideo(source: ImageSource.camera)
-          : await _picker.pickImage(source: ImageSource.camera);
+  Future<void> _pickMedia(bool isVideo) async {
+    final XFile? file = isVideo
+        ? await _picker.pickVideo(source: ImageSource.camera)
+        : await _picker.pickImage(source: ImageSource.camera);
 
-      if (file != null) {
-        // 取得 App 的文件資料夾
-        final Directory appDir = await getApplicationDocumentsDirectory();
+    if (file != null) {
+      final Directory appDir = await getApplicationDocumentsDirectory();
 
-        // 原始檔名（保持副檔名）
-        final String fileName = '${DateTime.now().millisecondsSinceEpoch}${path.extension(file.path)}';
+      final String fileName =
+          '${DateTime.now().millisecondsSinceEpoch}${path.extension(file.path)}';
 
-        // 目標儲存路徑
-        final String newPath = path.join(appDir.path, fileName);
+      final String newPath = path.join(appDir.path, fileName);
 
-        // 將檔案複製到 App 資料夾
-        final savedFile = await File(file.path).copy(newPath);
+      final savedFile = await File(file.path).copy(newPath);
 
-        print('✅ 檔案儲存成功：$newPath');
+      //print('✅ Save file：$newPath');
 
-        setState(() {
-          _mediaFile = savedFile;
-          _isVideo = isVideo;
-        });
-      }
-    }
-
-
-
-    /*Future<void> _pickMedia(bool isVideo) async {
-      final XFile? file = isVideo
-          ? await _picker.pickVideo(source: ImageSource.camera)
-          : await _picker.pickImage(source: ImageSource.camera);
-
-      if (file != null) {
-        setState(() {
-          _mediaFile = File(file.path);
-          _isVideo = isVideo;
-        });
-      }
-    }*/
-
-    late Record _recorder;          
-    bool _isRecording = false;      
-    String? _recordedPath;          
-
-    void _toggleRecording() async {
-      if (_isRecording) {
-        final path = await _recorder.stop();
-        print('✅ 錄音停止：$path');
-        setState(() {
-          _isRecording = false;
-          _recordedPath = path;
-        });
-      } else {
-        final status = await Permission.microphone.request();
-        if (!status.isGranted) {
-          print('❌ 沒有麥克風權限');
-          return;
+      setState(() {
+        _mediaFile = savedFile;
+        _isVideo = isVideo;
+        if (_userLocation != null && _mediaFile != null) {
+          final post = PostData(
+            location: _userLocation!,
+            type: _isVideo ? 'video' : 'photo',
+            content: _mediaFile!.path,
+          );
+          _addMarkerForPost(post);
         }
-
-        final dir = await getApplicationDocumentsDirectory();
-        final filePath =
-            '${dir.path}/recording_${DateTime.now().millisecondsSinceEpoch}.m4a';
-
-        await _recorder.start(
-          path: filePath,
-          encoder: AudioEncoder.aacLc,
-          bitRate: 128000,
-          samplingRate: 44100,
-        );
-
-        print('🎙️ 開始錄音，儲存於：$filePath');
-        setState(() {
-          _isRecording = true;
-          _recordedPath = filePath;
-        });
-      }
+      });
     }
+  }
 
-    void _showNoteSheet() {
-      TextEditingController _noteController = TextEditingController();
+  late Record _recorder;
+  bool _isRecording = false;
+  String? _recordedPath;
 
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        builder: (context) {
-          return Padding(
-            padding: EdgeInsets.only(
-              left: 16,
-              right: 16,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-              top: 16,
+  void _toggleRecording() async {
+    if (_isRecording) {
+      final path = await _recorder.stop();
+      //print('✅ Stop recording：$path');
+      setState(() {
+        _isRecording = false;
+        _recordedPath = path;
+        if (_userLocation != null && _recordedPath != null) {
+          final post = PostData(
+            location: _userLocation!,
+            type: 'record',
+            content: _recordedPath!,
+          );
+          _addMarkerForPost(post);
+        }
+      });
+    } else {
+      final status = await Permission.microphone.request();
+      if (!status.isGranted) {
+        //print('❌ No mic');
+        return;
+      }
+
+      final dir = await getApplicationDocumentsDirectory();
+      final filePath =
+          '${dir.path}/recording_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+      await _recorder.start(
+        path: filePath,
+        encoder: AudioEncoder.aacLc,
+        bitRate: 128000,
+        samplingRate: 44100,
+      );
+
+      //print('🎙️ Start recording：$filePath');
+      setState(() {
+        _isRecording = true;
+        _recordedPath = filePath;
+      });
+    }
+  }
+
+  void _showNoteSheet() {
+    TextEditingController _noteController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            top: 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[400],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              SizedBox(height: 12),
+              Text(
+                'location',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 12),
+              TextField(
+                controller: _noteController,
+                maxLines: null,
+                decoration: InputDecoration(
+                  hintText: 'Write something',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: ElevatedButton(
+                  onPressed: () {
+                    String note = _noteController.text;
+                    if (_userLocation != null && note.isNotEmpty) {
+                      final post = PostData(
+                        location: _userLocation!,
+                        type: 'note',
+                        content: note,
+                      );
+                      _addMarkerForPost(post);
+                    }
+                    //print('Save note：$note');
+                    Navigator.pop(context);
+                  },
+                  child: Text('post'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showMediaOptions(BuildContext context) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (BuildContext context) => CupertinoActionSheet(
+        title: Text('Choose'),
+        actions: <CupertinoActionSheetAction>[
+          CupertinoActionSheetAction(
+            child: Row(
+              children: [
+                Icon(CupertinoIcons.list_bullet, size: 20),
+                SizedBox(width: 8),
+                Text('note'),
+              ],
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+            onPressed: () {
+               Navigator.pop(context);
+              _showNoteSheet();
+            },
+          ),
+          CupertinoActionSheetAction(
+            child: Row(
+              children: [
+                Icon(CupertinoIcons.camera, size: 20),
+                SizedBox(width: 8),
+                Text('Photo'),
+              ],
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              _pickMedia(false);
+            },
+          ),
+          CupertinoActionSheetAction(
+            child: Row(
+              children: [
+                Icon(CupertinoIcons.mic, size: 20),
+                SizedBox(width: 8),
+                Text('Record'),
+              ],
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              _toggleRecording();
+            },
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDestructiveAction: true,
+          child: Text('Cancel'),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+      ),
+    );
+  }
+
+  void _addMarkerForPost(PostData post) {
+    final markerId = MarkerId(
+      post.location.toString() + post.type + DateTime.now().toString(),
+    );
+
+    final marker = Marker(
+      markerId: markerId,
+      position: post.location,
+      onTap: () {
+        _showPostDetail(post);
+      },
+    );
+
+    setState(() {
+      _markers.add(marker);
+      _posts.add(post);
+    });
+  }
+
+  void _showPostDetail(PostData post) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true, 
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          expand: false, 
+          minChildSize: 0.3, 
+          initialChildSize: 0.5,
+          maxChildSize: 0.9, 
+          builder: (context, scrollController) {
+            Widget contentWidget;
+            if (post.type == 'note') {
+              contentWidget = Padding(
+                padding: const EdgeInsets.all(16),
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  child: Text(post.content, style: TextStyle(fontSize: 18)),
+                ),
+              );
+            } else if (post.type == 'photo') {
+              contentWidget = SingleChildScrollView(
+                controller: scrollController,
+                child: Column(
+                  children: [
+                    SizedBox(height: 12),
+                    Image.file(File(post.content)),
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text('Photo file path:\n${post.content}'),
+                      ),
+                    SizedBox(height: 20),
+                  ],
+                ),
+              );
+            } else if (post.type == 'record') {
+              contentWidget = SingleChildScrollView(
+                controller: scrollController,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Text('Audio recording:', style: TextStyle(fontSize: 18)),
+                      SizedBox(height: 10),
+                      ElevatedButton.icon(
+                      icon: Icon(Icons.play_arrow),
+                      label: Text('Play'),
+                      onPressed: () async {
+                        await _audioPlayer.play(DeviceFileSource(post.content));
+                      },
+                    ),
+                    ElevatedButton.icon(
+                      icon: Icon(Icons.pause),
+                      label: Text('Pause'),
+                      onPressed: () async {
+                        await _audioPlayer.pause();
+                      },
+                    ),
+                    ElevatedButton.icon(
+                      icon: Icon(Icons.stop),
+                      label: Text('Stop'),
+                      onPressed: () async {
+                        await _audioPlayer.stop();
+                      },
+                    ),
+                    ],
+                  ),
+                ),
+              );
+            } else {
+              contentWidget = Center(child: Text('Unknown content'));
+            }
+
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Center(
+                Container(
+                  alignment: Alignment.center,
+                  margin: EdgeInsets.only(top: 12, bottom: 12),
                   child: Container(
                     width: 40,
-                    height: 4,
+                    height: 5,
                     decoration: BoxDecoration(
                       color: Colors.grey[400],
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(5),
                     ),
                   ),
                 ),
-                SizedBox(height: 12),
-                Text(
-                  'location', 
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 12),
-                TextField(
-                  controller: _noteController,
-                  maxLines: null,
-                  decoration: InputDecoration(
-                    hintText: 'Write something',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      String note = _noteController.text;
-                      // TODO: 存記事
-                      print('保存記事：$note');
-                      Navigator.pop(context);
-                    },
-                    child: Text('post'),
-                  ),
-                ),
+                Expanded(child: contentWidget),
               ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /*void _showPostDetail(PostData post) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        Widget contentWidget;
+        if (post.type == 'note') {
+          contentWidget = Text(post.content);
+        } else if (post.type == 'photo') {
+          contentWidget = Image.file(File(post.content));
+        } else if (post.type == 'record') {
+          contentWidget = Text('Recorded file: ${post.content}');
+          // player
+        } else {
+          contentWidget = Text('Unknown content');
+        }
+
+        return AlertDialog(
+          title: Text('Post Detail (${post.type})'),
+          content: contentWidget,
+          actions: [
+            TextButton(
+              child: Text('Close'),
+              onPressed: () => Navigator.pop(context),
             ),
-          );
-        },
-      );
-    }
-
-    void _showMediaOptions(BuildContext context) {
-      showCupertinoModalPopup(
-    context: context,
-    builder: (BuildContext context) => CupertinoActionSheet(
-      title: Text('Choose'),
-      actions: <CupertinoActionSheetAction>[
-        CupertinoActionSheetAction(
-          child: Row(
-            children: [
-              Icon(CupertinoIcons.list_bullet, size: 20),
-              SizedBox(width: 8),
-              Text('note'),
-            ],
-          ),
-          onPressed: () {
-            _showNoteSheet();
-          },
-        ),
-        CupertinoActionSheetAction(
-          child: Row(
-            children: [
-              Icon(CupertinoIcons.camera, size: 20),
-              SizedBox(width: 8),
-              Text('Photo'),
-            ],
-          ),
-          onPressed: () {
-            Navigator.pop(context);
-            _pickMedia(false);
-          },
-        ),
-        /*CupertinoActionSheetAction(
-          child: Row(
-            children: [
-              Icon(CupertinoIcons.videocam, size: 20),
-              SizedBox(width: 8),
-              Text('Video'),
-            ],
-          ),
-          onPressed: () {
-            Navigator.pop(context);
-            _pickMedia(true); 
-          },
-        ),*/
-        CupertinoActionSheetAction(
-          
-          child: Row(
-            children: [
-              Icon(CupertinoIcons.mic, size: 20),
-              SizedBox(width: 8),
-              Text('Record'),
-            ],
-          ),
-          onPressed: () {
-            Navigator.pop(context);
-            _toggleRecording();
-          },
-        ),
-      ],
-      cancelButton: CupertinoActionSheetAction(
-        isDestructiveAction: true,
-        child: Text('Cancel'),
-        onPressed: () {
-          Navigator.pop(context);
-        },
-      ),
-    ),
-  );
-    }
-
-
-  /*final ImagePicker _picker = ImagePicker();
-    File? _imageFile;
-
-    Future<void> _takePhoto() async {
-      final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
-      if (photo != null) {
-        setState(() {
-          _imageFile = File(photo.path);
-        });
-      }
-    }*/
+          ],
+        );
+      },
+    );
+  }
+*/
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
-        
         children: [
           GoogleMap(
             onMapCreated: _onMapCreated,
@@ -380,28 +517,11 @@ class _HomeScreenState extends State<HomeScreen> {
               target: _userLocation!,
               zoom: 16,
             ),
-          
-          
+            markers: _markers,
             myLocationEnabled: true,
             myLocationButtonEnabled: false,
           ),
-          /*Align(
-            alignment: Alignment.center,
-            child: SizedBox(
-              height: 860,
-              width: double.infinity,
-              child: GoogleMap(
-                onMapCreated: _onMapCreated,
-                initialCameraPosition: CameraPosition(
-                  target: _center,
-                  zoom: 14,
-                ),
-                myLocationEnabled: true,
-                myLocationButtonEnabled: false,
-              ),
-            ),
-          ), 
-*/
+
           Align(
             alignment: Alignment.topLeft,
             child: Padding(
@@ -421,15 +541,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icon(Icons.camera_alt_outlined),
                 iconSize: 40,
                 onPressed: () {
-                  /*Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => CameraPage()),
-                  );*/
-                  //_takePhoto();
                   _showMediaOptions(context);
                 },
               ),
-              
             ),
           ),
           Align(
@@ -466,7 +580,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
               radius: 80,
               onItemTap: (index) {
-                print('Tapped on $index');
+                //print('Tapped on $index');
               },
             ),
           ),
