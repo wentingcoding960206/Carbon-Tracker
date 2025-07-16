@@ -91,7 +91,9 @@ class _HomeScreenState extends State<HomeScreen> {
         print('Calling getEntries...');
         final entries = await DatabaseHelper().getEntries();
         print('Entries loaded: ${entries.length}');
-        for (var e in entries) print('Entry: $e');
+        for (var e in entries) {
+          print('Entry: $e');
+        }
 
         print('Calling _loadMarkersFromDB...');
         await _loadMarkersFromDB();
@@ -232,7 +234,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final ImagePicker _picker = ImagePicker();
   File? _mediaFile;
-  bool _isVideo = false;
+  final bool _isVideo = false;
 
   Future<void> _pickMedia(bool isVideo) async {
     final XFile? file = isVideo
@@ -388,9 +390,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
         cancelButton: CupertinoActionSheetAction(
-          child: Text('Cancel'),
           isDestructiveAction: true,
           onPressed: () => Navigator.pop(context),
+          child: Text('Cancel'),
         ),
       ),
     );
