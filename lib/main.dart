@@ -1,3 +1,4 @@
+import 'package:carbon_tracer/home_page.dart';
 import 'package:flutter/material.dart';
 import 'login_chatpages.dart';
 
@@ -13,11 +14,12 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Carbon Tracer',
       debugShowCheckedModeBanner: false,
-      home: LoginChatpages(
-        onTap: () {
-          print("Sign up tapped!");
-        },
-      ),
+      home: const HomeScreen(),
+      // home: LoginChatpages(
+      //   onTap: () {
+      //     print("Sign up tapped!");
+      //   },
+      // ),
     );
   }
 }
