@@ -17,40 +17,65 @@ class SemiCircleMenu extends StatefulWidget {
   _SemiCircleMenuState createState() => _SemiCircleMenuState();
 }
 
+
 class _SemiCircleMenuState extends State<SemiCircleMenu> {
-  double rotationAngle = 0;
+  int selectedIndex = 3;
+  double dragDelta = 0.0;
+
+  void _handlePanUpdate(DragUpdateDetails details) {
+    dragDelta += details.delta.dx;
+
+    if (dragDelta.abs() > 20) {
+      setState(() {
+        if (dragDelta > 0 && selectedIndex > 0) {
+          selectedIndex--;
+        } else if (dragDelta < 0 && selectedIndex < widget.icons.length - 1) {
+          selectedIndex++;
+        }
+        widget.onItemTap(selectedIndex);
+        dragDelta = 0;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final double angleStep = pi / (widget.icons.length - 1);
-    final double iconSize = 24;
+    final iconSize = 32.0;
+    final visibleCount = min(5, widget.icons.length);
+    final double angleStep = pi / (visibleCount - 1);
+
+    final List<Widget> iconWidgets = [];
+
+    for (int i = 0; i < visibleCount; i++) {
+      int relativeIndex = selectedIndex - (visibleCount ~/ 2) + i;
+
+      if (relativeIndex < 0 || relativeIndex >= widget.icons.length) continue;
+
+      final angle = pi - i * angleStep;
+      final double x = widget.radius * cos(angle);
+      final double y = widget.radius * sin(angle);
+
+      final icon = Icon(
+        widget.icons[relativeIndex],
+        size: iconSize,
+        color: i == visibleCount ~/ 2 ? Colors.blueAccent : Colors.grey,
+      );
+
+      iconWidgets.add(Positioned(
+        bottom: y,
+        left: (widget.radius * 2 + iconSize) / 2 + x - iconSize / 2 - 3,
+        child: icon,
+      ));
+    }
 
     return GestureDetector(
-      onPanUpdate: (details) {
-        setState(() {
-          rotationAngle += details.localPosition.dx * 0.01;
-        });
-      },
+      onPanUpdate: _handlePanUpdate,
       child: SizedBox(
-        width: widget.radius * 2 + 2 * iconSize,
+        width: widget.radius * 2 + iconSize,
         height: widget.radius + iconSize + 20,
         child: Stack(
           alignment: Alignment.bottomCenter,
-          children: List.generate(widget.icons.length, (index) {
-            final double angle = pi - (angleStep * index) + rotationAngle;
-            final double x = widget.radius * cos(angle);
-            final double y = widget.radius * sin(angle);
-
-            return Positioned(
-              bottom: y,
-              left: widget.radius + x - iconSize / 2,
-              child: IconButton(
-                icon: Icon(widget.icons[index]),
-                iconSize: iconSize,
-                onPressed: () => widget.onItemTap(index),
-              ),
-            );
-          }),
+          children: iconWidgets,
         ),
       ),
     );

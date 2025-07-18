@@ -1,5 +1,6 @@
 //import 'package:carbon_tracker/camera.dart';
 import 'package:carbon_tracker/database_helper.dart';
+import 'package:carbon_tracker/route_map.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 import 'semi_circle_menu.dart';
@@ -61,6 +62,9 @@ class _HomeScreenState extends State<HomeScreen> {
   LatLng? _userLocation = LatLng(25.033964, 121.564468);
 
   final Location _locationService = Location();
+
+  int selectedIconIndex = 0;
+  final GlobalKey<RouteMapState> _mapKey = GlobalKey<RouteMapState>();
 
   void _logAllEntries() async {
     final entries = await DatabaseHelper().getEntries();
@@ -230,6 +234,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
+
+    _locationService.onLocationChanged.listen((locationData) {
+      if (locationData.latitude != null && locationData.longitude != null) {
+        final newPos = LatLng(locationData.latitude!, locationData.longitude!);
+        mapController.animateCamera(CameraUpdate.newLatLng(newPos));
+      }
+    });
   }
 
   final ImagePicker _picker = ImagePicker();
@@ -458,9 +469,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_userLocation == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       body: Stack(
         children: [
+          RouteMap(key: _mapKey),
           GoogleMap(
             onMapCreated: _onMapCreated,
             initialCameraPosition: CameraPosition(
@@ -534,20 +552,54 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
               radius: 80,
               onItemTap: (index) {
+                setState(() {
+                  selectedIconIndex = index;
+                });
                 print('Tapped on $index');
               },
             ),
           ),
 
+          // Positioned(
+          //   bottom: 30,
+          //   left: MediaQuery.of(context).size.width / 2 - 70,
+          //   child: GestureDetector(
+          //     onTap: _relocateToUser,
+          //     child: CircleAvatar(
+          //       radius: 70,
+          //       backgroundColor: Colors.black,
+          //       child: Icon(
+          //         Icons.navigation_sharp,
+          //         color: Colors.white,
+          //         size: 70,
+          //       ),
+          //     ),
+          //   ),
+          // ),
+
           Positioned(
-            bottom: 30,
-            left: MediaQuery.of(context).size.width / 2 - 70,
-            child: GestureDetector(
-              onTap: _relocateToUser,
-              child: CircleAvatar(
+            bottom: 20,
+            left: MediaQuery.of(context).size.width / 2 - 79,
+            child: IconButton(
+              onPressed: () {
+                if (_mapKey.currentState != null) {
+                  final isRecording = _mapKey.currentState!.isRecording;
+
+                  if (isRecording) {
+                    _mapKey.currentState!.stopRecording();
+                  } else {
+                    _mapKey.currentState!.startRecording(
+                      iconIndex: selectedIconIndex,
+                    );
+                  }
+                }
+              },
+              icon: CircleAvatar(
                 radius: 70,
-                backgroundColor: Colors.black,
-                child: Icon(
+                backgroundColor: _mapKey.currentState?.isRecording == true
+                    ? Colors.red
+                    : Colors.black,
+                child: const Icon(
                   Icons.navigation_sharp,
                   color: Colors.white,
                   size: 70,
@@ -556,15 +608,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          Positioned(
-            bottom: 20,
-            left: MediaQuery.of(context).size.width / 5 - 50,
-            child: IconButton(
-              onPressed: () {},
-              icon: Icon(Icons.access_time_outlined),
-              iconSize: 50,
-            ),
-          ),
 
           Positioned(
             bottom: 20,
@@ -592,3 +635,4 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
 }
+
