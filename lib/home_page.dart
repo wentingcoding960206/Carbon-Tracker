@@ -236,11 +236,22 @@ class _HomeScreenState extends State<HomeScreen> {
     mapController = controller;
 
     _locationService.onLocationChanged.listen((locationData) {
-      if (locationData.latitude != null && locationData.longitude != null) {
-        final newPos = LatLng(locationData.latitude!, locationData.longitude!);
-        mapController.animateCamera(CameraUpdate.newLatLng(newPos));
+      final newPos = LatLng(locationData.latitude!, locationData.longitude!);
+      mapController.animateCamera(CameraUpdate.newLatLng(newPos));
+
+      // Forward to RouteMap
+      if (_mapKey.currentState?.isRecording ?? false) {
+        _mapKey.currentState?.addLocation(newPos);
       }
     });
+
+
+    // _locationService.onLocationChanged.listen((locationData) {
+    //   if (locationData.latitude != null && locationData.longitude != null) {
+    //     final newPos = LatLng(locationData.latitude!, locationData.longitude!);
+    //     mapController.animateCamera(CameraUpdate.newLatLng(newPos));
+    //   }
+    // });
   }
 
   final ImagePicker _picker = ImagePicker();
@@ -356,6 +367,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       'longitude': _userLocation!.longitude,
                       'timestamp': DateTime.now().toIso8601String(),
                     });
+
+                    print("${_userLocation!.latitude} ${_userLocation!.longitude}");
 
                     _logAllEntries();
 
@@ -478,17 +491,24 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          RouteMap(key: _mapKey),
-          GoogleMap(
-            onMapCreated: _onMapCreated,
-            initialCameraPosition: CameraPosition(
-              target: _userLocation!,
-              zoom: 16,
-            ),
-            markers: _markers,
-            myLocationEnabled: true,
-            myLocationButtonEnabled: false,
+          RouteMap(key: _mapKey, markers: _markers,  onRecordingChanged: (recording) {
+              setState(() {
+                // just to trigger rebuild for icon color update
+              });
+            },
           ),
+
+
+          // GoogleMap(
+          //   onMapCreated: _onMapCreated,
+          //   initialCameraPosition: CameraPosition(
+          //     target: _userLocation!,
+          //     zoom: 16,
+          //   ),
+          //   markers: _markers,
+          //   myLocationEnabled: true,
+          //   myLocationButtonEnabled: false,
+          // ),
 
           Align(
             alignment: Alignment.topLeft,
@@ -585,15 +605,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (_mapKey.currentState != null) {
                   final isRecording = _mapKey.currentState!.isRecording;
 
-                  if (isRecording) {
-                    _mapKey.currentState!.stopRecording();
-                  } else {
-                    _mapKey.currentState!.startRecording(
-                      iconIndex: selectedIconIndex,
-                    );
-                  }
+                  setState(() {
+                    if (isRecording) {
+                      _mapKey.currentState!.stopRecording();
+                    } else {
+                      _mapKey.currentState!.startRecording(
+                        iconIndex: selectedIconIndex,
+                      );
+                    }
+                  });
                 }
               },
+
               icon: CircleAvatar(
                 radius: 70,
                 backgroundColor: _mapKey.currentState?.isRecording == true
