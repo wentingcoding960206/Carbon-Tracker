@@ -1,6 +1,8 @@
 //import 'package:carbon_tracker/camera.dart';
+import 'package:carbon_tracker/AppSettings.dart';
 import 'package:carbon_tracker/database_helper.dart';
 import 'package:carbon_tracker/route_map.dart';
+import 'package:carbon_tracker/settings.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 import 'semi_circle_menu.dart';
@@ -15,9 +17,18 @@ import 'package:permission_handler/permission_handler.dart'
     hide PermissionStatus;
 import 'package:audioplayers/audioplayers.dart';
 
-Future<void> main() async {
-  runApp(const MyApp());
+import 'package:flutter/material.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); // ✅ Ensures plugins are ready
+  runApp(
+    MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: SettingsScreen(), // 🏠 Your app starts at the Settings screen
+    ),
+  );
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
