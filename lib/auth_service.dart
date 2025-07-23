@@ -12,6 +12,7 @@ class AuthService {
   // sign in with email & password
   Future<UserCredential> signInWithEmailPassword(String email, String password) async {
     try {
+      print('sign in');
       UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
@@ -35,6 +36,7 @@ class AuthService {
   // sign up with email & password
   Future<UserCredential> signUpWithEmailPassword(String email, String password) async {
     try {
+      print("sign up");
       UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
@@ -49,6 +51,7 @@ class AuthService {
 
       return userCredential;
     } on FirebaseAuthException catch (e) {
+      print("Firebase catch error");
       throw Exception(e.code);
     }
   }
