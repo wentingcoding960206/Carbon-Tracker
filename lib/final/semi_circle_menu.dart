@@ -48,8 +48,7 @@ class _SemiCircleMenuState extends State<SemiCircleMenu> {
 
   void _saveToFirebase() {
     final List<double> carbonemission = [0.255, 0.11, 0, 0.0197, 0.1, 0.035, 0.04];
-
-  // 確保 selectedIndex 在範圍內才使用
+    
   double carbonFactor = (selectedIndex >= 0 && selectedIndex < carbonemission.length)
       ? carbonemission[selectedIndex]
       : 0;
