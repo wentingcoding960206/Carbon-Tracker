@@ -1,13 +1,32 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
+
+class Activity {
+  final String startTime;
+  final String endTime;
+  final String transport;
+  final String duration;
+  final String carbonEmission;
+
+  Activity({
+    required this.startTime,
+    required this.endTime,
+    required this.transport,
+    required this.duration,
+    required this.carbonEmission,
+  });
+}
 
 class RouteMap extends StatefulWidget {
   final Set<Marker> markers;
   final ValueChanged<bool>? onRecordingChanged;
+
   const RouteMap({
     super.key,
     required this.markers,
@@ -26,6 +45,41 @@ class RouteData {
 }
 
 class RouteMapState extends State<RouteMap> {
+  double _calculateTotalDistance(List<LatLng> path) {
+    double totalDistance = 0.0;
+
+    for (int i = 0; i < path.length - 1; i++) {
+      totalDistance += _coordinateDistance(
+        path[i].latitude,
+        path[i].longitude,
+        path[i + 1].latitude,
+        path[i + 1].longitude,
+      );
+    }
+
+    return totalDistance;
+  }
+
+  double _coordinateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371000; // 地球半徑（公尺）
+    final dLat = _degreesToRadians(lat2 - lat1);
+    final dLon = _degreesToRadians(lon2 - lon1);
+
+    final a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(_degreesToRadians(lat1)) *
+            cos(_degreesToRadians(lat2)) *
+            sin(dLon / 2) *
+            sin(dLon / 2);
+
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return R * c;
+  }
+
+  double _degreesToRadians(double degrees) {
+    return degrees * pi / 180;
+  }
+
+
   late GoogleMapController _mapController;
   final Location _location = Location();
 
@@ -37,6 +91,8 @@ class RouteMapState extends State<RouteMap> {
   bool isRecording = false;
   int? _currentIconIndex;
   StreamSubscription<LocationData>? _locationSubscription;
+  late DateTime starttime;
+  late DateTime endtime;
 
   @override
   void initState() {
@@ -48,14 +104,6 @@ class RouteMapState extends State<RouteMap> {
   void dispose() {
     _locationSubscription?.cancel();
     super.dispose();
-  }
-
-  void addLocation(LatLng location) {
-    setState(() {
-      _currentRoutePoints.add(location);
-      _allRoutes[_allRoutes.length - 1].points = List.from(_currentRoutePoints);
-      _updatePolylines();
-    });
   }
 
   Future<void> _loadRoutes() async {
@@ -88,6 +136,21 @@ class RouteMapState extends State<RouteMap> {
     await prefs.setStringList('routes', jsonList);
   }
 
+  Future<void> _saveActivitiesForDate(DateTime date, List<Activity> newActivities) async {
+  final prefs = await SharedPreferences.getInstance();
+  final dateKey = DateFormat('yyyy-MM-dd').format(date);
+
+  final existingList = prefs.getStringList('activities-$dateKey') ?? [];
+  final newJsonList = newActivities.map((a) => jsonEncode({
+    'startTime': a.startTime,
+    'endTime': a.endTime,
+    'transport': a.transport,
+    'duration': a.duration,
+    'carbonEmission': a.carbonEmission,
+  })).toList();
+  await prefs.setStringList('activities-$dateKey', [...existingList, ...newJsonList]);
+}
+
   void _updatePolylines() {
     _polylines.clear();
     for (int i = 0; i < _allRoutes.length; i++) {
@@ -106,25 +169,16 @@ class RouteMapState extends State<RouteMap> {
 
   Color _getColorByIcon(int iconIndex) {
     switch (iconIndex) {
-      case 0:
-        return Colors.blue;
-      case 1:
-        return Colors.red;
-      case 2:
-        return Colors.green;
-      case 3:
-        return Colors.orange;
-      case 4:
-        return Colors.purple;
-      case 5:
-        return Colors.brown;
-      case 6:
-        return Colors.cyan;
-      default:
-        return Colors.black;
+      case 0: return Colors.blue;
+      case 1: return Colors.red;
+      case 2: return Colors.green;
+      case 3: return Colors.orange;
+      case 4: return Colors.purple;
+      case 5: return Colors.brown;
+      case 6: return Colors.cyan;
+      default: return Colors.black;
     }
   }
-
   int _getIntervalByIcon(int index) {
     switch (index) {
       case 0:
@@ -146,6 +200,32 @@ class RouteMapState extends State<RouteMap> {
     }
   }
 
+  double _carbonByIcon(int index) {
+    switch (index) {
+      case 0: return 0.255; // plane
+      case 1: return 0.11; // car
+      case 2: return 0; // walk
+      case 3: return 0.0197; // bike
+      case 4: return 0.1; // scooter
+      case 5: return 0.035; // train
+      case 6: return 0.04; // subway
+      default: return 0.0;
+    }
+  }
+
+  String _transportName(int index) {
+    switch (index) {
+      case 0: return '飛機';
+      case 1: return '開車';
+      case 2: return '步行';
+      case 3: return '自行車';
+      case 4: return '機車';
+      case 5: return '火車';
+      case 6: return '捷運';
+      default: return '未知';
+    }
+  }
+
   Future<bool> _checkPermissions() async {
     bool serviceEnabled = await _location.serviceEnabled();
     if (!serviceEnabled) {
@@ -163,16 +243,12 @@ class RouteMapState extends State<RouteMap> {
 
   Future<void> startRecording({required int iconIndex}) async {
     if (isRecording) return;
-
     final permissionOk = await _checkPermissions();
-    if (!permissionOk) {
-      debugPrint("Location permission/service not granted");
-      return;
-    }
+    if (!permissionOk) return;
 
+    starttime = DateTime.now();
     _currentIconIndex = iconIndex;
     int interval = _getIntervalByIcon(iconIndex);
-
     _currentRoutePoints = [];
     _allRoutes.add(RouteData(_currentRoutePoints, iconIndex));
     isRecording = true;
@@ -183,24 +259,14 @@ class RouteMapState extends State<RouteMap> {
     _locationSubscription = _location.onLocationChanged.listen((locationData) {
       if (!isRecording) return;
 
-      if (locationData.latitude != null && locationData.longitude != null) {
-        LatLng newPoint = LatLng(
-          locationData.latitude!,
-          locationData.longitude!,
-        );
+      final point = LatLng(locationData.latitude!, locationData.longitude!);
+      _currentRoutePoints.add(point);
+      _allRoutes.last.points = List.from(_currentRoutePoints);
 
-        _currentRoutePoints.add(newPoint);
-        _allRoutes[_allRoutes.length - 1].points = List.from(
-          _currentRoutePoints,
-        );
+      _updatePolylines();
 
-        _updatePolylines();
-
-        if (_currentRoutePoints.length == 1) {
-          _mapController.animateCamera(
-            CameraUpdate.newLatLngZoom(newPoint, 16),
-          );
-        }
+      if (_currentRoutePoints.length == 1) {
+        _mapController.animateCamera(CameraUpdate.newLatLngZoom(point, 16));
       }
     });
 
@@ -209,15 +275,38 @@ class RouteMapState extends State<RouteMap> {
 
   Future<void> stopRecording() async {
     if (!isRecording) return;
-
     isRecording = false;
     widget.onRecordingChanged?.call(isRecording);
-    await _saveRoutes();
-
     await _locationSubscription?.cancel();
     _locationSubscription = null;
+    endtime = DateTime.now();
+    Duration duration = endtime.difference(starttime);
+    final distance = _calculateTotalDistance(_currentRoutePoints);
+    final double carbon = distance * _carbonByIcon(_currentIconIndex ?? -1);
+    debugPrint('${DateFormat('yyyy-MM-dd').format(starttime)} 你這次共走了：${distance.toStringAsFixed(2)} 公尺');
+
+    
+    final activity = Activity(
+      startTime: DateFormat('HH:mm').format(starttime),
+      endTime: DateFormat('HH:mm').format(endtime),
+      transport: _transportName(_currentIconIndex ?? -1),
+      duration: '${duration.inMinutes}',
+      carbonEmission: '$carbon kg CO₂',
+    );
+
+    await _saveActivitiesForDate(starttime, [activity]);
+    await _saveRoutes();
+
 
     setState(() {});
+  }
+
+  void addLocation(LatLng location) {
+  setState(() {
+    _currentRoutePoints.add(location);
+    _allRoutes[_allRoutes.length - 1].points = List.from(_currentRoutePoints);
+    _updatePolylines();
+    });
   }
 
   void _onMapCreated(GoogleMapController controller) {

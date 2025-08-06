@@ -25,7 +25,7 @@ void main() async {
   runApp(
     MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Rank(), // 🏠 Your app starts at the Settings screen
+      home: MyApp(), // 🏠 Your app starts at the Settings screen
     ),
   );
 }

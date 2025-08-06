@@ -1,182 +1,184 @@
-/*import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:timeline_tile/timeline_tile.dart';
+
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
-class TimelinePage extends StatefulWidget {
-  const TimelinePage({super.key});
 
-  @override
-  State<TimelinePage> createState() => Timeline();
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('zh_TW');
+  runApp(MaterialApp(
+    home: TimelineUI(),
+  ));
 }
 
-class Timeline extends State<TimelinePage> {
-  DateTime selectedDate = DateTime.now();
-  final List<Map<String, dynamic>> timelineData = [];
-  final List<LatLng> routeCoords = [];
-  GoogleMapController? mapController;
-  Position? lastPosition;
+
+/*void main() {
+  runApp(MaterialApp(
+    home: TimelineUI(),
+  ));
+}*/
+
+
+
+
+class TimelineUI extends StatefulWidget {
+  const TimelineUI({super.key});
 
   @override
-  void initState() {
-    super.initState();
-    _startTracking();
-  }
+  _TimelinePageState createState() => _TimelinePageState();
+}
 
-  Future<void> _startTracking() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      await Geolocator.openLocationSettings();
-      return;
-    }
+class _TimelinePageState extends State<TimelineUI> {
+  DateTime selectedDate = DateTime(2025, 7, 2);
 
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) return;
-    }
-
-    Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.best,
-        distanceFilter: 10,
+  final Map<String, List<Activity>> mockData = {
+    '2025-07-02': [
+      Activity(
+        startTime: '08:00',
+        endTime: '08:45',
+        transport: '步行',
+        duration: '45 分鐘',
+        carbonEmission: '0.1 kg CO₂',
       ),
-    ).listen((Position position) {
-      if (lastPosition != null) {
-        final speed = position.speed;
-        String activity;
-        IconData icon;
-        if (speed < 1.5) {
-          activity = "Walking";
-          icon = Icons.directions_walk;
-        } else if (speed < 6) {
-          activity = "Cycling";
-          icon = Icons.pedal_bike;
-        } else {
-          activity = "Driving";
-          icon = Icons.directions_car;
-        }
+      Activity(
+        startTime: '09:00',
+        endTime: '09:30',
+        transport: '捷運',
+        duration: '30 分鐘',
+        carbonEmission: '0.3 kg CO₂',
+      ),
+      Activity(
+        startTime: '17:30',
+        endTime: '18:10',
+        transport: '公車',
+        duration: '40 分鐘',
+        carbonEmission: '0.5 kg CO₂',
+      ),
+    ],
+  };
 
-        timelineData.add({
-          'time': DateFormat('HH:mm').format(DateTime.now()),
-          'title': activity,
-          'subtitle': "Lat: ${position.latitude}, Lng: ${position.longitude}",
-          'icon': icon
-        });
-      }
-
-      lastPosition = position;
-      routeCoords.add(LatLng(position.latitude, position.longitude));
-      setState(() {});
+  void _previousDay() {
+    setState(() {
+      selectedDate = selectedDate.subtract(Duration(days: 1));
     });
   }
 
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
+  void _nextDay() {
+    setState(() {
+      selectedDate = selectedDate.add(Duration(days: 1));
+    });
+  }
+
+  void changeDate(int offset) {
+    setState(() {
+      selectedDate = selectedDate.add(Duration(days: offset));
+    });
+  }
+
+  void selectDate() async {
+    final picked = await showDatePicker(
       context: context,
       initialDate: selectedDate,
       firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
+      lastDate: DateTime(2030),
     );
-    if (picked != null && picked != selectedDate) {
-      setState(() {
-        selectedDate = picked;
-        // TODO: Load timeline data for the picked date
-      });
+    if (picked != null) {
+      setState(() => selectedDate = picked);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final String formattedDate = DateFormat('yyyy年M月d日', 'zh_TW').format(selectedDate);
+    final String dataKey = DateFormat('yyyy-MM-dd').format(selectedDate);
+    final activities = mockData[dataKey] ?? [];
+
+    double totalCarbon = 0;
+    for (final a in activities) {
+      final carbon = double.tryParse(a.carbonEmission.split(' ')[0]) ?? 0;
+      totalCarbon += carbon;
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Travel Timeline"),
+        title: Text('活動時間軸'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.calendar_today),
-            onPressed: () => _selectDate(context),
-          )
+            icon: Icon(Icons.calendar_today),
+            onPressed: selectDate,
+          ),
         ],
       ),
       body: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            color: Colors.blueGrey[50],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Date: ${DateFormat('yyyy-MM-dd').format(selectedDate)}"),
-                Text("Entries: ${timelineData.length}"),
+                IconButton(
+                  icon: Icon(Icons.arrow_left),
+                  onPressed: _previousDay,
+                ),
+                Text(
+                  formattedDate,
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: Icon(Icons.arrow_right),
+                  onPressed: _nextDay,
+                ),
               ],
             ),
           ),
-          SizedBox(
-            height: 250,
-            child: GoogleMap(
-              initialCameraPosition: const CameraPosition(
-                target: LatLng(25.0330, 121.5654),
-                zoom: 14,
-              ),
-              onMapCreated: (controller) => mapController = controller,
-              polylines: {
-                Polyline(
-                  polylineId: const PolylineId("route"),
-                  color: Colors.blue,
-                  width: 5,
-                  points: routeCoords,
-                )
-              },
-              markers: routeCoords
-                  .map((point) => Marker(
-                        markerId: MarkerId(point.toString()),
-                        position: point,
-                      ))
-                  .toSet(),
-            ),
-          ),
           Expanded(
-            child: ListView.builder(
-              itemCount: timelineData.length,
-              itemBuilder: (context, index) {
-                final item = timelineData[index];
-                return TimelineTile(
-                  alignment: TimelineAlign.manual,
-                  lineXY: 0.2,
-                  isFirst: index == 0,
-                  isLast: index == timelineData.length - 1,
-                  indicatorStyle: IndicatorStyle(
-                    width: 20,
-                    color: Colors.blue,
-                    iconStyle: IconStyle(
-                      iconData: item['icon'],
-                      color: Colors.white,
-                    ),
+            child: activities.isEmpty
+                ? Center(child: Text('這天沒有活動'))
+                : ListView.builder(
+                    itemCount: activities.length,
+                    itemBuilder: (context, index) {
+                      final activity = activities[index];
+                      return Card(
+                        margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(
+                            '${activity.startTime} 至 ${activity.endTime}\n'
+                            '${activity.transport}\n'
+                            '共 ${activity.duration}，碳排量 ${activity.carbonEmission}',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                  beforeLineStyle: const LineStyle(color: Colors.grey),
-                  endChild: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(item['time'],
-                            style:
-                                const TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
-                        Text(item['title'],
-                            style: const TextStyle(fontSize: 16)),
-                        Text(item['subtitle'],
-                            style: const TextStyle(color: Colors.grey)),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
           ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              '當日總碳排量：${totalCarbon.toStringAsFixed(2)} kg CO₂',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          )
         ],
       ),
     );
   }
-}*/
+}
+
+class Activity {
+  final String startTime;
+  final String endTime;
+  final String transport;
+  final String duration;
+  final String carbonEmission;
+
+  Activity({
+    required this.startTime,
+    required this.endTime,
+    required this.transport,
+    required this.duration,
+    required this.carbonEmission,
+  });
+}

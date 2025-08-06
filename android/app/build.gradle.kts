@@ -36,7 +36,6 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
-        // ✅ Use the variable from local.properties
         manifestPlaceholders["MAPS_API_KEY"] = MAPS_API_KEY
     }
 
