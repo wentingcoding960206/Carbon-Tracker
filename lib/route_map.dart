@@ -241,6 +241,9 @@ class RouteMapState extends State<RouteMap> {
     return true;
   }
 
+  
+
+
   Future<void> startRecording({required int iconIndex}) async {
     if (isRecording) return;
     final permissionOk = await _checkPermissions();

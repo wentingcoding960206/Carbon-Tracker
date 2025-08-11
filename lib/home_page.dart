@@ -4,6 +4,7 @@ import 'package:carbon_tracker/database_helper.dart';
 import 'package:carbon_tracker/rank.dart';
 import 'package:carbon_tracker/route_map.dart';
 import 'package:carbon_tracker/settings.dart';
+import 'package:carbon_tracker/timelineui.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 import 'semi_circle_menu.dart';
@@ -29,7 +30,6 @@ void main() async {
     ),
   );
 }
-
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -119,7 +119,6 @@ class _HomeScreenState extends State<HomeScreen> {
         print(st);
       }
     });
-
   }
 
   Future<void> _initLocation() async {
@@ -173,7 +172,6 @@ class _HomeScreenState extends State<HomeScreen> {
             _userLocation = _fallbackLocation;
           });
         }
-
       } else {
         print('Permission denied or service disabled');
         setState(() {
@@ -225,7 +223,6 @@ class _HomeScreenState extends State<HomeScreen> {
     print('Markers loaded: ${_markers.length}'); // DEBUG
   }
 
-
   Future<void> _relocateToUser() async {
     try {
       final locationData = await _locationService.getLocation();
@@ -256,7 +253,6 @@ class _HomeScreenState extends State<HomeScreen> {
         _mapKey.currentState?.addLocation(newPos);
       }
     });
-
 
     // _locationService.onLocationChanged.listen((locationData) {
     //   if (locationData.latitude != null && locationData.longitude != null) {
@@ -380,7 +376,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       'timestamp': DateTime.now().toIso8601String(),
                     });
 
-                    print("${_userLocation!.latitude} ${_userLocation!.longitude}");
+                    print(
+                      "${_userLocation!.latitude} ${_userLocation!.longitude}",
+                    );
 
                     _logAllEntries();
 
@@ -490,26 +488,24 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     if (_userLocation == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
       body: Stack(
         children: [
-          RouteMap(key: _mapKey, markers: _markers,  onRecordingChanged: (recording) {
+          RouteMap(
+            key: _mapKey,
+            markers: _markers,
+            onRecordingChanged: (recording) {
               setState(() {
                 // just to trigger rebuild for icon color update
               });
             },
           ),
-
 
           // GoogleMap(
           //   onMapCreated: _onMapCreated,
@@ -521,7 +517,6 @@ class _HomeScreenState extends State<HomeScreen> {
           //   myLocationEnabled: true,
           //   myLocationButtonEnabled: false,
           // ),
-
           Align(
             alignment: Alignment.topLeft,
             child: Padding(
@@ -529,7 +524,14 @@ class _HomeScreenState extends State<HomeScreen> {
               child: IconButton(
                 icon: Icon(Icons.person_2_outlined),
                 iconSize: 40,
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SettingsScreen(),
+                    ),
+                  );
+                },
               ),
             ),
           ),
@@ -608,7 +610,6 @@ class _HomeScreenState extends State<HomeScreen> {
           //     ),
           //   ),
           // ),
-
           Positioned(
             bottom: 20,
             left: MediaQuery.of(context).size.width / 2 - 79,
@@ -643,7 +644,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-
           Positioned(
             bottom: 20,
             right: MediaQuery.of(context).size.width / 5 - 40,
@@ -652,7 +652,12 @@ class _HomeScreenState extends State<HomeScreen> {
               elevation: 0,
               shape: CircleBorder(),
               child: InkWell(
-                onTap: () {},
+                onTap: () {
+                  /*Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const TimeLine()),
+                  );*/
+                },
                 splashColor: Colors.green.shade300.withOpacity(0.6),
                 highlightColor: Colors.black.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(30),
@@ -668,6 +673,4 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
 }
-
