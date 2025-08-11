@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+/*import 'package:flutter/material.dart';
 
 class CalendarFilterButton extends StatelessWidget {
   final VoidCallback onCalendarPressed;
@@ -33,4 +33,27 @@ class CalendarFilterButton extends StatelessWidget {
       ),
     );
   }
+}*/
+
+import 'package:flutter/material.dart';
+
+class CalendarFilterButton extends StatelessWidget {
+  final VoidCallback onCalendarPressed;
+
+  const CalendarFilterButton({
+    super.key,
+    required this.onCalendarPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: IconButton(
+        icon: const Icon(Icons.calendar_today),
+        onPressed: onCalendarPressed, 
+      ),
+    );
+  }
 }
+

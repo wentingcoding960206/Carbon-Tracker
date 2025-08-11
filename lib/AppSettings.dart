@@ -1,3 +1,4 @@
+import 'package:carbon_tracker/settings.dart';
 import 'package:carbon_tracker/statistics.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -111,32 +112,27 @@ class _SettingsScreen extends State<SettingsScreen> {
               const SizedBox(height: 20),
 
               // 🔽 Sections
-              SectionsSettings(
-                nameSectionsSettings: 'Personal Information',
-                iconsSectionsSettings: Icons.person_2_outlined,
-                onPressed: () => print("Personal Infomation"),
-              ),
-              SectionsSettings(
-                nameSectionsSettings: 'Notifications',
-                iconsSectionsSettings: Icons.notification_add_outlined,
-                onPressed: () => print("Notifications"),
-              ),
+              
+
               SectionsSettings(
                 nameSectionsSettings: 'Statistics',
                 iconsSectionsSettings: Icons.history,
-                onPressed: (){
+                onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => const Statistics(),
-                    ),
+                    MaterialPageRoute(builder: (context) => const Statistics()),
                   );
                 },
               ),
               SectionsSettings(
-                nameSectionsSettings: 'About Us & Attributes',
+                nameSectionsSettings: 'Privacy and Sharing',
                 iconsSectionsSettings: Icons.info_outline,
-                onPressed: () => print("Attributes"),
+                onPressed: () {Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SettingsPage(),
+                    ),
+                  );},
               ),
             ],
           ),

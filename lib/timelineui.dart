@@ -1,14 +1,10 @@
+
+
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('zh_TW');
-  runApp(MaterialApp(home: TimelineUI()));
-}
 
 class TimelineUI extends StatefulWidget {
   const TimelineUI({super.key});
@@ -46,6 +42,12 @@ class _TimelinePageState extends State<TimelineUI> {
       lastDate: DateTime(2030),
     );
     if (picked != null) setState(() => selectedDate = picked);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    initializeDateFormatting('zh_TW');
   }
 
   @override

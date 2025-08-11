@@ -92,6 +92,20 @@ class _LineGraphState extends State<LineGraph> {
   Widget build(BuildContext context) {
     final labels = weekdayLabels;
 
+    final maxEmission = emissionsLast7Days.reduce((a, b) => a > b ? a : b);
+
+    
+    double interval;
+    if (maxEmission <= 10) {
+      interval = 1;
+    } else if (maxEmission <= 100) {
+      interval = 10;
+    } else if (maxEmission <= 1000) {
+      interval = 100;
+    } else {
+      interval = 500;
+    }
+
     return Column(
       children: [
         SizedBox(
@@ -121,10 +135,18 @@ class _LineGraphState extends State<LineGraph> {
                 leftTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
-                    interval: 10,
+                    interval: interval,
                     reservedSize: 40,
+                    getTitlesWidget: (value, meta) {
+                      if (value % 1 == 0) {
+                        // only show whole numbers
+                        return Text(value.toInt().toString());
+                      }
+                      return const SizedBox.shrink();
+                    },
                   ),
                 ),
+
                 topTitles: AxisTitles(
                   sideTitles: SideTitles(showTitles: false),
                 ),

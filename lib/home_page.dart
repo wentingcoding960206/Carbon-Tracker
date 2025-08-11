@@ -555,9 +555,12 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Padding(
               padding: EdgeInsets.only(top: 20),
               child: IconButton(
-                icon: Icon(Icons.edit),
+                icon: Icon(Icons.access_time_outlined),
                 iconSize: 40,
-                onPressed: () {},
+                onPressed: () {Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const TimelineUI()),
+                  );},
               ),
             ),
           ),
@@ -664,7 +667,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: CircleAvatar(
                   backgroundColor: Colors.transparent,
                   radius: 30,
-                  //backgroundImage: AssetImage("assets/leaderboard.png"),
+                  //Icons.clock,
                 ),
               ),
             ),
