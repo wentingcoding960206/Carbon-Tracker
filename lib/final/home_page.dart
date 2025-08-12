@@ -263,6 +263,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final bool _isVideo = false;
 
   Future<void> _pickMedia(bool isVideo) async {
+    await _initLocation();
     final XFile? file = isVideo
         ? await _picker.pickVideo(source: ImageSource.camera)
         : await _picker.pickImage(source: ImageSource.camera);
@@ -294,6 +295,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _recordedPath;
 
   void _toggleRecording() async {
+    await _initLocation();
     if (_isRecording) {
       final path = await _recorder.stop();
       await DatabaseHelper().insertEntry({
@@ -361,6 +363,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               ElevatedButton(
                 onPressed: () async {
+                  await _initLocation();
                   String note = noteController.text;
                   if (_userLocation != null && note.isNotEmpty) {
                     await DatabaseHelper().insertEntry({
