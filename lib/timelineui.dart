@@ -1,6 +1,7 @@
 
 
 import 'dart:convert';
+import 'package:carbon_tracker/settings_database.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -52,86 +53,136 @@ class _TimelinePageState extends State<TimelineUI> {
 
   @override
   Widget build(BuildContext context) {
-    final formattedDate = DateFormat('yyyy年M月d日', 'zh_TW').format(selectedDate);
-    final dateKey = DateFormat('yyyy-MM-dd').format(selectedDate);
+    return FutureBuilder<String?>(
+      future: SettingsDatabase.getSetting('tracking_enabled'),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('活動時間軸'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.calendar_today),
-            onPressed: selectDate,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                IconButton(icon: Icon(Icons.arrow_left), onPressed: _previousDay),
-                Text(formattedDate, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                IconButton(icon: Icon(Icons.arrow_right), onPressed: _nextDay),
-              ],
+        bool showTimeline = snapshot.data == 'true';
+
+        if (!showTimeline) {
+          return Scaffold(
+            appBar: AppBar(title: const Text("Timeline Disabled")),
+            body: Container(
+              color: Colors.green,
+              child: const Center(child: Text("Timeline Enabled")),
             ),
+          );
+        }
+
+        final formattedDate = DateFormat(
+          'yyyy年M月d日',
+          'zh_TW',
+        ).format(selectedDate);
+        final dateKey = DateFormat('yyyy-MM-dd').format(selectedDate);
+
+        return Scaffold(
+          appBar: AppBar(
+            title: Text('活動時間軸'),
+            actions: [
+              IconButton(
+                icon: Icon(Icons.calendar_today),
+                onPressed: selectDate,
+              ),
+            ],
           ),
-          Expanded(
-            child: FutureBuilder<List<Activity>>(
-              future: _loadActivitiesForDate(dateKey),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState != ConnectionState.done) {
-                  return Center(child: CircularProgressIndicator());
-                }
-
-                final activities = snapshot.data ?? [];
-                if (activities.isEmpty) return Center(child: Text('這天沒有活動'));
-
-                final totalCarbon = activities.fold<double>(
-                  0,
-                  (sum, a) => sum + (double.tryParse(a.carbonEmission.split(' ')[0]) ?? 0),
-                );
-
-                return Column(
+          body: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: activities.length,
-                        itemBuilder: (context, index) {
-                          final a = activities[index];
-                          return Card(
-                            margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Text(
-                                '${a.startTime} 至 ${a.endTime}\n'
-                                '${a.transport}\n'
-                                '共 ${a.duration}，碳排量 ${a.carbonEmission}',
-                                style: TextStyle(fontSize: 16),
-                              ),
-                            ),
-                          );
-                        },
+                    IconButton(
+                      icon: Icon(Icons.arrow_left),
+                      onPressed: _previousDay,
+                    ),
+                    Text(
+                      formattedDate,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Text(
-                        '當日總碳排量：${totalCarbon.toStringAsFixed(2)} kg CO₂',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
+                    IconButton(
+                      icon: Icon(Icons.arrow_right),
+                      onPressed: _nextDay,
                     ),
                   ],
-                );
-              },
-            ),
+                ),
+              ),
+              Expanded(
+                child: FutureBuilder<List<Activity>>(
+                  future: _loadActivitiesForDate(dateKey),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState != ConnectionState.done) {
+                      return Center(child: CircularProgressIndicator());
+                    }
+
+                    final activities = snapshot.data ?? [];
+                    if (activities.isEmpty)
+                      return Center(child: Text('這天沒有活動'));
+
+                    final totalCarbon = activities.fold<double>(
+                      0,
+                      (sum, a) =>
+                          sum +
+                          (double.tryParse(a.carbonEmission.split(' ')[0]) ??
+                              0),
+                    );
+
+                    return Column(
+                      children: [
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: activities.length,
+                            itemBuilder: (context, index) {
+                              final a = activities[index];
+                              return Card(
+                                margin: EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Text(
+                                    '${a.startTime} 至 ${a.endTime}\n'
+                                    '${a.transport}\n'
+                                    '共 ${a.duration}，碳排量 ${a.carbonEmission}',
+                                    style: TextStyle(fontSize: 16),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(
+                            '當日總碳排量：${totalCarbon.toStringAsFixed(2)} kg CO₂',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
+
 }
 
 class Activity {

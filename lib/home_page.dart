@@ -1,4 +1,6 @@
 //import 'package:carbon_tracker/camera.dart';
+import 'dart:developer';
+
 import 'package:carbon_tracker/AppSettings.dart';
 import 'package:carbon_tracker/database_helper.dart';
 import 'package:carbon_tracker/rank.dart';
@@ -36,43 +38,14 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   
-  // @override
-  // Widget build(BuildContext context) {
-  //   return MaterialApp(
-  //     title: 'Flutter Demo',
-  //     theme: ThemeData(
-  //       colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-  //     ),
-  //     home: const HomeScreen(),
-  //   );
-  // }
-
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<String?>(
-      future: SettingsDatabase.getSetting('tracking_enabled'),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        bool showTimeline = snapshot.data == 'true';
-
-        if (!showTimeline) {
-          return Container(
-            color: Colors.green,
-            child: const Center(child: Text("Timeline Enabled")),
-          );
-        }
-
-        return MaterialApp(
-          title: 'Flutter Demo',
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-          ),
-          home: const HomeScreen(),
-        );
-      },
+    return MaterialApp(
+      title: 'Flutter Demo',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+      ),
+      home: const HomeScreen(),
     );
   }
 
@@ -626,22 +599,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // Positioned(
-          //   bottom: 30,
-          //   left: MediaQuery.of(context).size.width / 2 - 70,
-          //   child: GestureDetector(
-          //     onTap: _relocateToUser,
-          //     child: CircleAvatar(
-          //       radius: 70,
-          //       backgroundColor: Colors.black,
-          //       child: Icon(
-          //         Icons.navigation_sharp,
-          //         color: Colors.white,
-          //         size: 70,
-          //       ),
-          //     ),
-          //   ),
-          // ),
           Positioned(
             bottom: 20,
             left: MediaQuery.of(context).size.width / 2 - 79,
@@ -685,16 +642,16 @@ class _HomeScreenState extends State<HomeScreen> {
               shape: CircleBorder(),
               child: InkWell(
                 onTap: () {
-                  /*Navigator.push(
+                  Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const TimeLine()),
-                  );*/
+                    MaterialPageRoute(builder: (context) => const TimelineUI()),
+                  );
                 },
                 splashColor: Colors.green.shade300.withOpacity(0.6),
                 highlightColor: Colors.black.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(30),
                 child: CircleAvatar(
-                  backgroundColor: Colors.transparent,
+                  backgroundColor: Colors.black,
                   radius: 30,
                   //backgroundImage: AssetImage("assets/leaderboard.png"),
                 ),
