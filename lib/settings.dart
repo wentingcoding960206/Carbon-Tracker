@@ -1,3 +1,4 @@
+import 'package:carbon_tracker/settings_database.dart';
 import 'package:flutter/material.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -59,6 +60,24 @@ class Settings extends State<SettingsPage> {
     );
   }
 
+  Future<void> _loadSettings() async {
+    String? savedValue = await SettingsDatabase.getSetting('tracking_enabled');
+    if (savedValue != null) {
+      setState(() {
+        isTrackingEnabled = savedValue == 'true';
+      });
+    }
+  }
+
+  Future<void> _updateTracking(bool value) async {
+    setState(() => isTrackingEnabled = value);
+    await SettingsDatabase.setSetting('tracking_enabled', value.toString());
+
+    // 🔹 Immediately read back to confirm
+    String? check = await SettingsDatabase.getSetting('tracking_enabled');
+    debugPrint("Tracking is now: $check");
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -73,20 +92,20 @@ class Settings extends State<SettingsPage> {
             title: const Text("Enable Timeline Tracking"),
             subtitle: const Text("Track and display your daily movements"),
             value: isTrackingEnabled,
-            onChanged: (val) => setState(() => isTrackingEnabled = val),
+            onChanged: (val) => _updateTracking(val),
           ),
-          SwitchListTile(
-            title: const Text("Anonymize Shared Data"),
-            subtitle: const Text("Hide personal details when exporting or sharing"),
-            value: isAnonymized,
-            onChanged: (val) => setState(() => isAnonymized = val),
-          ),
-          SwitchListTile(
-            title: const Text("Auto Save Timeline"),
-            subtitle: const Text("Save activity history automatically on device"),
-            value: autoSaveEnabled,
-            onChanged: (val) => setState(() => autoSaveEnabled = val),
-          ),
+          // SwitchListTile(
+          //   title: const Text("Anonymize Shared Data"),
+          //   subtitle: const Text("Hide personal details when exporting or sharing"),
+          //   value: isAnonymized,
+          //   onChanged: (val) => setState(() => isAnonymized = val),
+          // ),
+          // SwitchListTile(
+          //   title: const Text("Auto Save Timeline"),
+          //   subtitle: const Text("Save activity history automatically on device"),
+          //   value: autoSaveEnabled,
+          //   onChanged: (val) => setState(() => autoSaveEnabled = val),
+          // ),
 
           ListTile(
             title: const Text("Delete My Timeline Data"),

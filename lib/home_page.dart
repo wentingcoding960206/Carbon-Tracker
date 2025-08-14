@@ -4,6 +4,7 @@ import 'package:carbon_tracker/database_helper.dart';
 import 'package:carbon_tracker/rank.dart';
 import 'package:carbon_tracker/route_map.dart';
 import 'package:carbon_tracker/settings.dart';
+import 'package:carbon_tracker/settings_database.dart';
 import 'package:carbon_tracker/timelineui.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
@@ -22,11 +23,11 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // ✅ Ensures plugins are ready
+  WidgetsFlutterBinding.ensureInitialized(); 
   runApp(
     MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: MyApp(), // 🏠 Your app starts at the Settings screen
+      home: MyApp(), 
     ),
   );
 }
@@ -34,16 +35,47 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  
+  // @override
+  // Widget build(BuildContext context) {
+  //   return MaterialApp(
+  //     title: 'Flutter Demo',
+  //     theme: ThemeData(
+  //       colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+  //     ),
+  //     home: const HomeScreen(),
+  //   );
+  // }
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const HomeScreen(),
+    return FutureBuilder<String?>(
+      future: SettingsDatabase.getSetting('tracking_enabled'),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        bool showTimeline = snapshot.data == 'true';
+
+        if (!showTimeline) {
+          return Container(
+            color: Colors.green,
+            child: const Center(child: Text("Timeline Enabled")),
+          );
+        }
+
+        return MaterialApp(
+          title: 'Flutter Demo',
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+          ),
+          home: const HomeScreen(),
+        );
+      },
     );
   }
+
 }
 
 class HomeScreen extends StatefulWidget {
@@ -555,12 +587,9 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Padding(
               padding: EdgeInsets.only(top: 20),
               child: IconButton(
-                icon: Icon(Icons.access_time_outlined),
+                icon: Icon(Icons.edit),
                 iconSize: 40,
-                onPressed: () {Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const TimelineUI()),
-                  );},
+                onPressed: () {},
               ),
             ),
           ),
@@ -667,7 +696,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: CircleAvatar(
                   backgroundColor: Colors.transparent,
                   radius: 30,
-                  //Icons.clock,
+                  //backgroundImage: AssetImage("assets/leaderboard.png"),
                 ),
               ),
             ),
