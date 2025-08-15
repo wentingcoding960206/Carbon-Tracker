@@ -112,8 +112,6 @@ class _SettingsScreen extends State<SettingsScreen> {
               const SizedBox(height: 20),
 
               // 🔽 Sections
-              
-
               SectionsSettings(
                 nameSectionsSettings: 'Statistics',
                 iconsSectionsSettings: Icons.history,
@@ -127,12 +125,14 @@ class _SettingsScreen extends State<SettingsScreen> {
               SectionsSettings(
                 nameSectionsSettings: 'Privacy and Sharing',
                 iconsSectionsSettings: Icons.info_outline,
-                onPressed: () {Navigator.push(
+                onPressed: () {
+                  Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => const SettingsPage(),
                     ),
-                  );},
+                  );
+                },
               ),
             ],
           ),
