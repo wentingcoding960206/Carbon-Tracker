@@ -1,10 +1,7 @@
-//import 'package:carbon_tracker/camera.dart';
 import 'package:carbon_tracker/AppSettings.dart';
+import 'package:carbon_tracker/TimeLine.dart' hide TimelineUI;
 import 'package:carbon_tracker/database_helper.dart';
-import 'package:carbon_tracker/rank.dart';
 import 'package:carbon_tracker/route_map.dart';
-import 'package:carbon_tracker/settings.dart';
-import 'package:carbon_tracker/timelineui.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 import 'semi_circle_menu.dart';
@@ -14,21 +11,19 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:record/record.dart';
+import 'package:carbon_tracker/settings_database.dart';
+import 'package:carbon_tracker/timelineui.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart'
     hide PermissionStatus;
 import 'package:audioplayers/audioplayers.dart';
+//import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-import 'package:flutter/material.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // ✅ Ensures plugins are ready
-  runApp(
-    MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: MyApp(), // 🏠 Your app starts at the Settings screen
-    ),
-  );
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  //await Firebase.initializeApp();
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -71,7 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   final LatLng _fallbackLocation = LatLng(25.033964, 121.564468);
-  LatLng? _userLocation = LatLng(25.033964, 121.564468);
+  LatLng _userLocation = LatLng(25.033964, 121.564468);
 
   final Location _locationService = Location();
 
@@ -171,6 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
           setState(() {
             _userLocation = _fallbackLocation;
           });
+          
         }
       } else {
         print('Permission denied or service disabled');
@@ -188,6 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadMarkersFromDB() async {
+    await _initLocation();
     final entries = await DatabaseHelper().getEntries();
     print('Loaded entries count: ${entries.length}'); // DEBUG
 
@@ -267,6 +264,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final bool _isVideo = false;
 
   Future<void> _pickMedia(bool isVideo) async {
+    await _initLocation();
     final XFile? file = isVideo
         ? await _picker.pickVideo(source: ImageSource.camera)
         : await _picker.pickImage(source: ImageSource.camera);
@@ -298,6 +296,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _recordedPath;
 
   void _toggleRecording() async {
+    await _initLocation();
     if (_isRecording) {
       final path = await _recorder.stop();
       await DatabaseHelper().insertEntry({
@@ -365,6 +364,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               ElevatedButton(
                 onPressed: () async {
+                  await _initLocation();
                   String note = noteController.text;
                   if (_userLocation != null && note.isNotEmpty) {
                     await DatabaseHelper().insertEntry({
@@ -490,9 +490,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_userLocation == null) {
+    /*if (_userLocation == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
+    }*/
 
     return Scaffold(
       body: Stack(
@@ -555,12 +555,9 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Padding(
               padding: EdgeInsets.only(top: 20),
               child: IconButton(
-                icon: Icon(Icons.access_time_outlined),
+                icon: Icon(Icons.edit),
                 iconSize: 40,
-                onPressed: () {Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const TimelineUI()),
-                  );},
+                onPressed: () {},
               ),
             ),
           ),
@@ -579,13 +576,13 @@ class _HomeScreenState extends State<HomeScreen> {
             left: MediaQuery.of(context).size.width / 2 - 92,
             child: SemiCircleMenu(
               icons: [
-                Icons.flight,
-                Icons.directions_car,
-                Icons.directions_walk,
-                Icons.directions_bike,
-                Icons.two_wheeler,
-                Icons.train,
-                Icons.subway,
+                Icons.flight, //255g/km
+                Icons.directions_car, //110g/km
+                Icons.directions_walk, //0
+                Icons.directions_bike, //19.7g/km
+                Icons.two_wheeler, //100g.km
+                Icons.train, //35g/km
+                Icons.subway, //40g/km
               ],
               radius: 80,
               onItemTap: (index) {
@@ -593,7 +590,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   selectedIconIndex = index;
                 });
                 print('Tapped on $index');
-              },
+              }, //distanceInMeters: 0.0, userId: '',//0.0->null
             ),
           ),
 
@@ -656,18 +653,18 @@ class _HomeScreenState extends State<HomeScreen> {
               shape: CircleBorder(),
               child: InkWell(
                 onTap: () {
-                  /*Navigator.push(
+                  Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const TimeLine()),
-                  );*/
+                    MaterialPageRoute(builder: (context) => const TimelineUI()),
+                  );
                 },
                 splashColor: Colors.green.shade300.withOpacity(0.6),
                 highlightColor: Colors.black.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(30),
                 child: CircleAvatar(
-                  backgroundColor: Colors.transparent,
+                  backgroundColor: Colors.black,
                   radius: 30,
-                  //Icons.clock,
+                  //backgroundImage: AssetImage("assets/leaderboard.png"),
                 ),
               ),
             ),
@@ -677,3 +674,4 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
