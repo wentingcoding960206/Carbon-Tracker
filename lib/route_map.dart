@@ -163,6 +163,7 @@ class RouteMapState extends State<RouteMap> {
           points: route.points,
         ),
       );
+      _mapController.animateCamera(CameraUpdate.newLatLngZoom(route.points.last, 16));
     }
     setState(() {});
   }
